@@ -10,7 +10,10 @@ router.get('/', async (req, res, next) => {
 
     for (const category of categories) {
       const { rows: translations } = await db.query(
-        'SELECT * FROM category_translations WHERE category_id = $1',
+        `SELECT ct.id, ct.category_id, ct.name, l.code 
+         FROM category_translations ct 
+         JOIN languages l ON ct.language_id = l.id 
+         WHERE category_id = $1`,
         [category.id]
       );
       category.translations = translations;
@@ -21,6 +24,7 @@ router.get('/', async (req, res, next) => {
     next(err);
   }
 });
+
 
 router.post('/', auth, admin, async (req, res, next) => {
   const { translations } = req.body;
