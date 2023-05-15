@@ -63,6 +63,50 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+router.get('/all', auth, admin, async (req, res, next) => {
+  try {
+    const { rows: games } = await db.query(`
+      SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, categories.name as category, games.category_id
+      FROM games
+      JOIN categories ON games.category_id = categories.id
+    `);
+
+    for (const game of games) {
+      const { rows: translations } = await db.query('SELECT game_translations.*, languages.code FROM game_translations JOIN languages ON game_translations.language_id = languages.id WHERE game_id = $1', [game.id]);
+
+      const { rows: aliases } = await db.query(
+        'SELECT alias, language_id FROM game_translations WHERE game_id = $1',
+        [game.id]
+      );
+
+      const { rows: descriptions } = await db.query(
+        'SELECT description, language_id FROM game_translations WHERE game_id = $1',
+        [game.id]
+      );
+
+      const { rows: necessities } = await db.query(
+        `SELECT necessities.id as necessity_id, necessities.name as necessity_name, necessity_translations.name as necessity_translation_name, necessity_translations.language_id as language_id 
+         FROM necessities
+         JOIN necessity_translations ON necessities.id = necessity_translations.necessity_id
+         WHERE necessities.game_id = $1`,
+        [game.id]
+      );
+
+      const { rows: categoryTranslations } = await db.query('SELECT category_translations.*, languages.code FROM category_translations JOIN languages ON category_translations.language_id = languages.id WHERE category_id = $1', [game.category_id]);
+
+      game.translations = translations;
+      game.aliases = aliases;
+      game.descriptions = descriptions;
+      game.necessities = necessities;
+      game.categoryTranslations = categoryTranslations;
+    }
+    
+    res.json(games);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
