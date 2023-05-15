@@ -188,7 +188,9 @@ router.post('/', auth, admin, upload.single('image'), async (req, res, next) => 
       necessities,
       player_count,
       category_id,
-    } = req.body;
+      publish,
+      new: isNew,
+    } = JSON.parse(req.body.data);
 
     if (typeof translations === 'string') {
       translations = JSON.parse(translations);
@@ -199,6 +201,13 @@ router.post('/', auth, admin, upload.single('image'), async (req, res, next) => 
 
     if (typeof aliases === 'undefined' || !Array.isArray(aliases)) {
       aliases = []; // Set aliases to an empty array if it is undefined or not an array
+    }
+
+    if (typeof publish === 'string') {
+      publish = publish === 'true';
+    }
+    if (typeof isNew === 'string') {
+      isNew = isNew === 'true';
     }
 
     if (!translations || !translations.length || !translations[0].name) {
@@ -226,9 +235,9 @@ router.post('/', auth, admin, upload.single('image'), async (req, res, next) => 
     const creator_id = req.user.id;
 
     const { rows } = await db.query(
-      `INSERT INTO games (name, player_count, image, description, alias, category_id, creator_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [translations[0].name, player_count, image, descriptions[0].description, alias, category_id, creator_id]
+      `INSERT INTO games (name, player_count, image, description, alias, category_id, creator_id, publish, new)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+      [translations[0].name, player_count, image, descriptions[0].description, alias, category_id, creator_id, publish, isNew]
     );
 
     const gameId = rows[0].id;
