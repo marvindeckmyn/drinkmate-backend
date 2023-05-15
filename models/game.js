@@ -12,6 +12,8 @@ const createTable = async () => {
         alias VARCHAR(255),
         category_id INTEGER REFERENCES categories(id),
         creator_id INTEGER REFERENCES users(id)
+        publish BOOLEAN DEFAULT true,
+        new BOOLEAN DEFAULT true
       )
     `);
     console.log('Games table created');
