@@ -21,9 +21,10 @@ const unlinkAsync = util.promisify(fs.unlink);
 router.get('/', async (req, res, next) => {
   try {
     const { rows: games } = await db.query(`
-      SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, categories.name as category, games.category_id
+      SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, categories.name as category, games.category_id
       FROM games
       JOIN categories ON games.category_id = categories.id
+      WHERE games.publish = TRUE
     `);
 
     for (const game of games) {
