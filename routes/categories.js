@@ -10,7 +10,7 @@ router.get('/', async (req, res, next) => {
 
     for (const category of categories) {
       const { rows: translations } = await db.query(
-        `SELECT ct.id, ct.category_id, ct.name, l.code 
+        `SELECT ct.id, ct.category_id, ct.name, l.code, ct.language_id
          FROM category_translations ct 
          JOIN languages l ON ct.language_id = l.id 
          WHERE category_id = $1`,
