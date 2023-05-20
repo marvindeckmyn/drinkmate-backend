@@ -66,7 +66,7 @@ router.get('/', async (req, res, next) => {
 router.get('/all', auth, admin, async (req, res, next) => {
   try {
     const { rows: games } = await db.query(`
-      SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, categories.name as category, games.category_id
+      SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, games.publish, categories.name as category, games.category_id
       FROM games
       JOIN categories ON games.category_id = categories.id
     `);
@@ -275,6 +275,7 @@ router.post('/', auth, admin, upload.single('image'), async (req, res, next) => 
   }
 });
 
+// Edit game
 router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) => {
   try {
     const gameId = req.params.id;
@@ -379,6 +380,44 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
     );
     
     res.status(200).json({ message: 'Game updated successfully.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Edit new property
+router.put('/:id/new', auth, admin, async (req, res, next) => {
+  try {
+    const gameId = req.params.id;
+    const { newValue } = req.body;
+
+    await db.query(
+      `UPDATE games
+      SET new = $1
+      WHERE id = $2`,
+      [newValue, gameId]
+    );
+
+    res.status(200).json({ message: 'Game\'s new status updated successfully.'});
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Edit publish property
+router.put('/:id/publish', auth, admin, async (req, res, next) => {
+  try {
+    const gameId = req.params.id;
+    const { publishValue } = req.body;
+
+    await db.query(
+      `UPDATE games
+      SET publish = $1
+      WHERE id = $2`,
+      [publishValue, gameId]
+    );
+
+    res.status(200).json({ message: 'Game\'s publish status updated successfully.'});
   } catch (err) {
     next(err);
   }
