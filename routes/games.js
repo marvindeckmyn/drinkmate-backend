@@ -18,6 +18,7 @@ const fs = require('fs');
 const util = require('util');
 const unlinkAsync = util.promisify(fs.unlink);
 
+// Fetch published games
 router.get('/', async (req, res, next) => {
   try {
     const { rows: games } = await db.query(`
@@ -63,12 +64,14 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// Fetch published and unpublished games
 router.get('/all', auth, admin, async (req, res, next) => {
   try {
     const { rows: games } = await db.query(`
       SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, games.publish, categories.name as category, games.category_id
       FROM games
       JOIN categories ON games.category_id = categories.id
+      ORDER BY id DESC
     `);
 
     for (const game of games) {
