@@ -282,10 +282,15 @@ router.post('/', auth, admin, upload.single('image'), async (req, res, next) => 
 router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) => {
   try {
     const gameId = req.params.id;
-    const { image } = req.body;
     const game_data = JSON.parse(req.body.game_data);
     const { translations, necessities, player_count, category_id } = game_data;
     const updatedNecessityIds = [];
+
+    const { rows: oldGameRows } = await db.query(
+      `SELECT image FROM games WHERE id = $1`,
+      [gameId]
+    );
+    const oldImage = oldGameRows[0].image;
 
     await db.query(
       `UPDATE games
@@ -294,13 +299,23 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
       [player_count, category_id, gameId]
     );
 
-    if (image) {
+    if (req.file) {
+      const newImage = req.file.filename;
+
       await db.query(
         `UPDATE games
         SET image = $1
         WHERE id = $2`,
-        [image, gameId]
+        [newImage, gameId]
       );
+
+      if (oldImage) {
+        try {
+          await fs.promises.unlink(`public/games/${oldImage}`);
+        } catch (err) {
+          console.error(`Failed to delete old image: ${oldImage}`);
+        }
+      }
     }
 
     for (const translation of translations) {
@@ -371,16 +386,17 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
       }
     }
     
-    await db.query(
-      `DELETE FROM necessity_translations WHERE necessity_id IN (SELECT id FROM necessities WHERE game_id = $1 AND id NOT IN (${updatedNecessityIds.join(",")}))`,
-      [gameId]
-    );
-    
-    // Now, delete the rows from the "necessities" table
-    await db.query(
-      `DELETE FROM necessities WHERE game_id = $1 AND id NOT IN (${updatedNecessityIds.join(",")})`,
-      [gameId]
-    );
+    if (updatedNecessityIds.length > 0) {
+      await db.query(
+        `DELETE FROM necessity_translations WHERE necessity_id IN (SELECT id FROM necessities WHERE game_id = $1 AND id NOT IN (${updatedNecessityIds.join(",")}))`,
+        [gameId]
+      );
+      
+      await db.query(
+        `DELETE FROM necessities WHERE game_id = $1 AND id NOT IN (${updatedNecessityIds.join(",")})`,
+        [gameId]
+      );
+    }
     
     res.status(200).json({ message: 'Game updated successfully.' });
   } catch (err) {
