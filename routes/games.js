@@ -131,7 +131,10 @@ router.get('/:id', async (req, res, next) => {
     const { rows: translations } = await db.query('SELECT game_translations.*, languages.code FROM game_translations JOIN languages ON game_translations.language_id = languages.id WHERE game_id = $1', [game.id]);
 
     const { rows: aliases } = await db.query(
-      'SELECT alias, language_id FROM game_translations WHERE game_id = $1',
+      `SELECT alias, game_translations.language_id, languages.code
+       FROM game_translations
+       JOIN languages ON game_translations.language_id = languages.id
+       WHERE game_id = $1`,
       [game.id]
     );
 
@@ -341,6 +344,15 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
          WHERE game_id = $2 AND language_id = $3`,
          [gameAlias, gameId, language_id]
       );
+
+      if (language_id === 1) {
+        await db.query(
+          `UPDATE games
+           SET alias = $1
+           WHERE id = $2`,
+           [gameAlias, gameId]
+        );
+      }
     }
 
     for (const description of descriptions) {
