@@ -283,7 +283,7 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
   try {
     const gameId = req.params.id;
     const game_data = JSON.parse(req.body.game_data);
-    const { translations, necessities, player_count, category_id, descriptions } = game_data;
+    const { translations, necessities, player_count, category_id, aliases, descriptions } = game_data;
     const updatedNecessityIds = [];
 
     const { rows: oldGameRows } = await db.query(
@@ -322,12 +322,24 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
       if (!translation.name) {
         continue;
       }
+
       await db.query(
         `INSERT INTO game_translations (game_id, language_id, name, alias)
          VALUES ($1, $2, $3, $4)
          ON CONFLICT (game_id, language_id) DO UPDATE
          SET name = $3, alias = $4`,
         [gameId, translation.language_id, translation.name, translation.alias]
+      );
+    }
+
+    for (const alias of aliases) {
+      const { language_id, alias: gameAlias } = alias;
+
+      await db.query(
+        `UPDATE game_translations
+         SET alias = $1
+         WHERE game_id = $2 AND language_id = $3`,
+         [gameAlias, gameId, language_id]
       );
     }
 
