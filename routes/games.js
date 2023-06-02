@@ -372,8 +372,6 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
       }
       const { necessity_id, name, game_id, language_id } = necessity;
 
-      console.log(necessity);
-
       if (necessity_id) {
         const { rows: necessityRows } = await db.query(
           `UPDATE necessities SET name = $1 WHERE id = $2 AND game_id = $3 RETURNING id`,
