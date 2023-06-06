@@ -7,6 +7,7 @@ const usersRouter = require('./routes/users');
 const gamesRouter = require('./routes/games');
 const categoriesRouter = require('./routes/categories');
 const languagesRouter = require('./routes/languages');
+const submittedGamesRouter = require('./routes/submittedGames');
 
 var app = express();
 
@@ -21,5 +22,6 @@ app.use('/api/users', usersRouter);
 app.use('/api/games', gamesRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/languages', languagesRouter);
+app.use('/api/submitted/games', submittedGamesRouter);
 
 module.exports = app;
