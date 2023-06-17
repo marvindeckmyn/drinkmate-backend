@@ -9,7 +9,7 @@ const admin = require('../middlewares/admin');
 router.get('/', auth, admin, async (req, res, next) => {
   try {
     const { rows: submittedGames } = await db.query(`
-      SELECT submittedGames.id, submittedGames.name, submittedGames.player_count, submittedGames.description, submittedGames.alias, submittedGames.necessities, categories.name as category, users.username as creator
+      SELECT submitted_games.id, submitted_games.name, submitted_games.player_count, submitted_games.description, submitted_games.alias, submitted_games.necessities, categories.name as category, users.username as creator
       FROM submitted_games
       JOIN categories on submitted_games.category_id = categories.id
       JOIN users on submitted_games.creator_id = users.id
