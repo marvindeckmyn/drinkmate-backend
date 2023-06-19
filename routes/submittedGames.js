@@ -22,6 +22,29 @@ router.get('/', auth, admin, async (req, res, next) => {
   }
 });
 
+// Fetch a specific submitted game
+router.get('/:id', auth, admin, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const { rows: [game] } = await db.query(`
+      SELECT submitted_games.id, submitted_games.name, submitted_games.player_count, submitted_games.description, submitted_games.alias, submitted_games.necessities, categories.name as category, users.username as creator
+      FROM submitted_games
+      JOIN categories on submitted_games.category_id = categories.id
+      JOIN users on submitted_games.creator_id = users.id
+      WHERE submitted_games.id = $1
+    `, [id]);
+
+    if (!game) {
+      return res.status(404).json({ message: 'Game not found' });
+    }
+
+    res.json(game);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Submit a game
 router.post('/', auth, [
   check('name', 'Name is required').not().isEmpty(),
