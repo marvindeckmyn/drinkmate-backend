@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
     await db.query('INSERT INTO users (username, email, password) VALUES ($1, $2, $3)', [username, email, hashedPassword]);
 
     const payload = { user: { id: email } };
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '365d' }, (err, token) => {
       if (err) throw err;
       res.cookie('userId', user.id, { httpOnly: true, sameSite: 'strict' });
       res.json({ token, isAdmin: user.is_admin, userId: user.id });
@@ -55,7 +55,7 @@ router.post('/login', async (req, res) => {
     }
 
     const payload = { user: { id: user.email } };
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '365d' }, (err, token) => {
       if (err) throw err;
       res.cookie('userId', user.id, { httpOnly: true, sameSite: 'strict' });
       res.json({ token, isAdmin: user.is_admin, userId: user.id });
