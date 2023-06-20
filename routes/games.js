@@ -238,7 +238,7 @@ router.post('/', auth, admin, upload.single('image'), async (req, res, next) => 
     }
 
     const alias = aliases && aliases[0] ? aliases[0].alias : null;
-    const creator_id = req.user.id;
+    const creator_id = 69;
 
     const { rows } = await db.query(
       `INSERT INTO games (name, player_count, image, description, alias, category_id, creator_id, publish, new)
