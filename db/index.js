@@ -6,7 +6,7 @@ const pool = new Pool(config);
 
 config.ssl = {
   rejectUnauthorized: false,
-  ca: fs.readFileSync('/db/ca-certificate.crt').toString(),
+  ca: fs.readFileSync('db/ca-certificate.crt').toString(),
 };
 
 module.exports = {
