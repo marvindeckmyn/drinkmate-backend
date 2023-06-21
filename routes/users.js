@@ -22,9 +22,11 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    await db.query('INSERT INTO users (username, email, password) VALUES ($1, $2, $3)', [username, email, hashedPassword]);
+    const newUser = await db.query('INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING *', [username, email, hashedPassword]);
 
-    const payload = { user: { id: email } };
+    const user = newUser.rows[0];
+
+    const payload = { user: { id: user.id } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '365d' }, (err, token) => {
       if (err) throw err;
       res.cookie('userId', user.id, { httpOnly: true, sameSite: 'strict' });
@@ -54,7 +56,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
-    const payload = { user: { id: user.email } };
+    const payload = { user: { id: user.id } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '365d' }, (err, token) => {
       if (err) throw err;
       res.cookie('userId', user.id, { httpOnly: true, sameSite: 'strict' });

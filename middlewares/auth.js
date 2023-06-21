@@ -13,7 +13,8 @@ module.exports = async function (req, res, next) {
   // Verify token
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [decoded.user.id]);
+    console.log(decoded)
+    const { rows } = await db.query('SELECT * FROM users WHERE id = $1', [decoded.user.id]);
 
     if (rows.length === 0) {
       return res.status(401).json({ msg: 'Token is not valid' });
