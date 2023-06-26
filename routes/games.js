@@ -16,7 +16,6 @@ const auth = require('../middlewares/auth');
 const admin = require('../middlewares/admin');
 const fs = require('fs');
 const util = require('util');
-const unlinkAsync = util.promisify(fs.unlink);
 
 // Fetch published games
 router.get('/', async (req, res, next) => {
@@ -230,7 +229,7 @@ router.post('/', auth, admin, upload.single('image'), async (req, res, next) => 
       return res.status(400).json({ error: 'Invalid category_id' });
     }
 
-    const image = req.file? req.file.filename : '';
+    const image = req.file ? path.join('games', req.file.filename).replace(/\\/g, '/') : '';
 
     // Check if the image is provided
     if (!image) {
@@ -314,7 +313,7 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
 
       if (oldImage) {
         try {
-          await fs.promises.unlink(`public/games/${oldImage}`);
+          await fs.promises.unlink(path.join('public/games/', oldImage));
         } catch (err) {
           console.error(`Failed to delete old image: ${oldImage}`);
         }
@@ -485,7 +484,7 @@ router.delete('/:id', auth, admin, async (req, res, next) => {
 
     // Delete image file
     if (imageFilename) {
-      await unlinkAsync(`public/games/${imageFilename}`);
+      await fs.promises.unlink(path.join('public/games/', imageFilename));
     }
 
     // Delete necessity translations
