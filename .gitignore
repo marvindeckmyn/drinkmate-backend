@@ -7,8 +7,6 @@ frontend/build/
 # Backend environment variables
 .env
 
-public/games/
-
 # Logs
 logs/
 *.log
