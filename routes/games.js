@@ -1,8 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const multer = require('multer');
 const path = require('path');
+const fetch = import('node-fetch').then(module => module.default);
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../public/games'));
@@ -15,7 +17,6 @@ const upload = multer({ storage: storage });
 const auth = require('../middlewares/auth');
 const admin = require('../middlewares/admin');
 const fs = require('fs');
-const util = require('util');
 
 // Fetch published games
 router.get('/', async (req, res, next) => {
@@ -274,6 +275,14 @@ router.post('/', auth, admin, upload.single('image'), async (req, res, next) => 
       }
     }
 
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    const username = req.user.username
+    await (await fetch)(webhookUrl, {
+      method: 'post',
+      body: JSON.stringify({ content: `${username} has posted a new game with ID: ${gameId} and name: ${translations[0].name}` }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
     res.status(201).json({ id: gameId });
   } catch (err) {
     next(err);
@@ -429,6 +438,14 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
         [gameId]
       );
     }
+
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    const username = req.user.username;
+    await (await fetch)(webhookUrl, {
+      method: 'post',
+      body: JSON.stringify({ content: `${username} has updated the game with ID: ${gameId}.` }),
+      headers: { 'Content-Type': 'application/json' },
+    });
     
     res.status(200).json({ message: 'Game updated successfully.' });
   } catch (err) {

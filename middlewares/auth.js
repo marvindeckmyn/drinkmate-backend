@@ -21,6 +21,7 @@ module.exports = async function (req, res, next) {
 
     req.user = {
       id: rows[0].id,
+      username: rows[0].username,
       email: rows[0].email,
       is_admin: rows[0].is_admin
     };
