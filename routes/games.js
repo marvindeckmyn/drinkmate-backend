@@ -302,7 +302,7 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
     );
 
     if (req.file) {
-      const newImage = req.file.filename;
+      const newImage = req.file ? path.join('games', req.file.filename).replace(/\\/g, '/') : '';
 
       await db.query(
         `UPDATE games
@@ -313,7 +313,7 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
 
       if (oldImage) {
         try {
-          await fs.promises.unlink(path.join('public/games/', oldImage));
+          await fs.promises.unlink(path.join('public/', oldImage));
         } catch (err) {
           console.error(`Failed to delete old image: ${oldImage}`);
         }
@@ -484,7 +484,7 @@ router.delete('/:id', auth, admin, async (req, res, next) => {
 
     // Delete image file
     if (imageFilename) {
-      await fs.promises.unlink(path.join('public/games/', imageFilename));
+      await fs.promises.unlink(path.join('public/', imageFilename));
     }
 
     // Delete necessity translations
