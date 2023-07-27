@@ -4,7 +4,6 @@ const router = express.Router();
 const db = require('../db');
 const multer = require('multer');
 const path = require('path');
-const fetch = import('node-fetch').then(module => module.default);
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../public/games'));
@@ -17,6 +16,14 @@ const upload = multer({ storage: storage });
 const auth = require('../middlewares/auth');
 const admin = require('../middlewares/admin');
 const fs = require('fs');
+let fetch;
+
+async function loadFetch() {
+    const module = await import('node-fetch');
+    fetch = module.default || module;
+}
+
+loadFetch();
 
 // Fetch published games
 router.get('/', async (req, res, next) => {
@@ -140,6 +147,8 @@ router.get('/:id', async (req, res, next) => {
     `, [id]);
 
     const game = games[0];
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    
     if (!game) {
       res.status(404).json({ message: 'Game not found' });
       return;
@@ -195,6 +204,27 @@ router.get('/:id', async (req, res, next) => {
     game.descriptions = descriptions;
     game.necessities = Object.values(necessitiesWithTranslations);
     game.categoryTranslations = categoryTranslations;
+
+    if (!fetch) {
+      throw new Error('Fetch is not yet available');
+    }
+
+    // Get the user's IP address from the request
+    const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    console.log(ipAddress)
+
+    // Fetch the geolocation data (make sure to handle potential errors from this API call)
+    const geoResponse = await fetch(`https://api.ipgeolocation.io/ipgeo?apiKey=1c9c9eb3cd264563b16f8d3fdc441567&ip=${ipAddress}`);
+    const geoData = await geoResponse.json();
+
+    const content = `Someone from ${geoData.city}, ${geoData.country_name} is watching ${game.name}`;
+
+    await fetch(webhookUrl, {
+      method: 'post',
+      body: JSON.stringify({ content }),
+      headers: { 'Content-Type': 'application/json' },
+    });
 
     res.json(game);
   } catch (err) {
