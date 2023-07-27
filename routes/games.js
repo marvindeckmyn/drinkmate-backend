@@ -14,6 +14,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 const auth = require('../middlewares/auth');
+const softAuth = require('../middlewares/softAuth');
 const admin = require('../middlewares/admin');
 const fs = require('fs');
 let fetch;
@@ -134,7 +135,7 @@ router.get('/all', auth, admin, async (req, res, next) => {
   }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', softAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -147,7 +148,8 @@ router.get('/:id', async (req, res, next) => {
     `, [id]);
 
     const game = games[0];
-    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    const webhookUrl = process.env.DISCORD_LOG_URL;
+    const geoApiKey = process.env.GEO_APY_KEY;
     
     if (!game) {
       res.status(404).json({ message: 'Game not found' });
@@ -214,13 +216,14 @@ router.get('/:id', async (req, res, next) => {
     const ipAddress = forwardedIps ? forwardedIps.split(',')[0] : req.connection.remoteAddress;
 
     // Fetch the geolocation data (make sure to handle potential errors from this API call)
-    const geoResponse = await fetch(`https://api.ipgeolocation.io/ipgeo?apiKey=1c9c9eb3cd264563b16f8d3fdc441567&ip=${ipAddress}`);
+    const geoResponse = await fetch(`https://api.ipgeolocation.io/ipgeo?apiKey=${geoApiKey}&ip=${ipAddress}`);
     const geoData = await geoResponse.json();
 
-    const isLoggedIn = req.user && req.user.name;
+    const isLoggedIn = req.user && req.user.username;
+    console.log(isLoggedIn);
     let content;
     if (isLoggedIn) {
-        content = `${req.user.name} from ${geoData.city}, ${geoData.country_name} is watching ${game.name}`;
+        content = `${req.user.username} from ${geoData.city}, ${geoData.country_name} is watching ${game.name}`;
     } else {
         content = `Someone from ${geoData.city}, ${geoData.country_name} is watching ${game.name}`;
     }
