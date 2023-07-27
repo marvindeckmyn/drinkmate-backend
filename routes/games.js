@@ -210,9 +210,8 @@ router.get('/:id', async (req, res, next) => {
     }
 
     // Get the user's IP address from the request
-    const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    console.log(ipAddress)
+    const forwardedIps = req.headers['x-forwarded-for'];
+    const ipAddress = forwardedIps ? forwardedIps.split(',')[0] : req.connection.remoteAddress;
 
     // Fetch the geolocation data (make sure to handle potential errors from this API call)
     const geoResponse = await fetch(`https://api.ipgeolocation.io/ipgeo?apiKey=1c9c9eb3cd264563b16f8d3fdc441567&ip=${ipAddress}`);
