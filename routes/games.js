@@ -149,7 +149,7 @@ router.get('/:id', softAuth, async (req, res, next) => {
 
     const game = games[0];
     const webhookUrl = process.env.DISCORD_LOG_URL;
-    const geoApiKey = process.env.GEO_APY_KEY;
+    const geoApiKey = process.env.GEO_API_KEY;
     
     if (!game) {
       res.status(404).json({ message: 'Game not found' });
