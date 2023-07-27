@@ -217,7 +217,13 @@ router.get('/:id', async (req, res, next) => {
     const geoResponse = await fetch(`https://api.ipgeolocation.io/ipgeo?apiKey=1c9c9eb3cd264563b16f8d3fdc441567&ip=${ipAddress}`);
     const geoData = await geoResponse.json();
 
-    const content = `Someone from ${geoData.city}, ${geoData.country_name} is watching ${game.name}`;
+    const isLoggedIn = req.user && req.user.name;
+    let content;
+    if (isLoggedIn) {
+        content = `${req.user.name} from ${geoData.city}, ${geoData.country_name} is watching ${game.name}`;
+    } else {
+        content = `Someone from ${geoData.city}, ${geoData.country_name} is watching ${game.name}`;
+    }
 
     await fetch(webhookUrl, {
       method: 'post',
