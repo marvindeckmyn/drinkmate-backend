@@ -21,35 +21,28 @@ const fs = require('fs');
 // Fetch published games
 router.get('/', async (req, res, next) => {
   try {
+    const page = parseInt(req.query.page || 1);
+    const limit = parseInt(req.query.limit || 10);
+    const offset = (page - 1) * limit;
+
     const { rows: games } = await db.query(`
       SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, games.click_count, categories.name as category, games.category_id
       FROM games
       JOIN categories ON games.category_id = categories.id
       WHERE games.publish = TRUE
       ORDER BY games.click_count DESC
-    `);
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
 
     for (const game of games) {
       const { rows: translations } = await db.query('SELECT game_translations.*, languages.code FROM game_translations JOIN languages ON game_translations.language_id = languages.id WHERE game_id = $1', [game.id]);
-
-      const { rows: aliases } = await db.query(
-        'SELECT alias, language_id FROM game_translations WHERE game_id = $1',
-        [game.id]
-      );
-
-      const { rows: descriptions } = await db.query(
-        'SELECT description, language_id FROM game_translations WHERE game_id = $1',
-        [game.id]
-      );
-
-      const { rows: necessities } = await db.query(
-        `SELECT necessities.id as necessity_id, necessities.name as necessity_name, necessity_translations.name as necessity_translation_name, necessity_translations.language_id as language_id 
+      const { rows: aliases } = await db.query('SELECT alias, language_id FROM game_translations WHERE game_id = $1', [game.id]);
+      const { rows: descriptions } = await db.query('SELECT description, language_id FROM game_translations WHERE game_id = $1', [game.id]);
+      const { rows: necessities } = await db.query(`SELECT necessities.id as necessity_id, necessities.name as necessity_name, necessity_translations.name as necessity_translation_name, necessity_translations.language_id as language_id 
          FROM necessities
          JOIN necessity_translations ON necessities.id = necessity_translations.necessity_id
          WHERE necessities.game_id = $1`,
-        [game.id]
-      );
-
+        [game.id]);
       const { rows: categoryTranslations } = await db.query('SELECT category_translations.*, languages.code FROM category_translations JOIN languages ON category_translations.language_id = languages.id WHERE category_id = $1', [game.category_id]);
 
       game.translations = translations;
@@ -58,8 +51,16 @@ router.get('/', async (req, res, next) => {
       game.necessities = necessities;
       game.categoryTranslations = categoryTranslations;
     }
-    
-    res.json(games);
+
+    // Check if there are more games
+    const { rowCount } = await db.query(`
+      SELECT id FROM games WHERE games.publish = TRUE LIMIT $1 OFFSET $2
+    `, [limit, offset + limit]);
+    const hasMoreGames = rowCount > 0;
+
+    // Send games along with a flag indicating if there are more games to load
+    res.json({ games, hasMoreGames });
+
   } catch (err) {
     next(err);
   }
