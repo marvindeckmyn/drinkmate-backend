@@ -10,6 +10,7 @@ const createTable = async () => {
         image VARCHAR(255) NOT NULL,
         description TEXT NOT NULL,
         alias VARCHAR(255),
+        click_count INTEGER DEFAULT 0,
         category_id INTEGER REFERENCES categories(id),
         creator_id INTEGER REFERENCES users(id),
         publish BOOLEAN DEFAULT true,

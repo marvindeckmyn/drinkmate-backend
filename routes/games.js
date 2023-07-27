@@ -22,10 +22,11 @@ const fs = require('fs');
 router.get('/', async (req, res, next) => {
   try {
     const { rows: games } = await db.query(`
-      SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, categories.name as category, games.category_id
+      SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, games.click_count, categories.name as category, games.category_id
       FROM games
       JOIN categories ON games.category_id = categories.id
       WHERE games.publish = TRUE
+      ORDER BY games.click_count DESC
     `);
 
     for (const game of games) {
@@ -490,6 +491,22 @@ router.put('/:id/publish', auth, admin, async (req, res, next) => {
     next(err);
   }
 });
+
+// Add click
+router.put('/:id/click', async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    await db.query(`
+      UPDATE games
+      set click_count = click_count + 1
+      WHERE id = $1
+    `, [id]);
+
+    res.json({ message: 'Game click count updated successfully.' });
+  } catch (err) {
+    next(err);
+  }
+})
 
 router.delete('/:id', auth, admin, async (req, res, next) => {
   try {
