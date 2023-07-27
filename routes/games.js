@@ -24,15 +24,30 @@ router.get('/', async (req, res, next) => {
     const page = parseInt(req.query.page || 1);
     const limit = parseInt(req.query.limit || 10);
     const offset = (page - 1) * limit;
+    const search = req.query.search;  // fetch search query parameter
 
-    const { rows: games } = await db.query(`
+    let gamesQuery = `
       SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, games.click_count, categories.name as category, games.category_id
       FROM games
       JOIN categories ON games.category_id = categories.id
       WHERE games.publish = TRUE
+    `;
+
+    let gamesParams = [];
+
+    if (search) {
+      gamesQuery += ` AND (LOWER(games.name) LIKE LOWER($1) OR LOWER(games.alias) LIKE LOWER($1))`;
+      gamesParams.push(`%${search}%`);
+    }
+
+    gamesQuery += `
       ORDER BY games.click_count DESC
-      LIMIT $1 OFFSET $2
-    `, [limit, offset]);
+      LIMIT $${gamesParams.length + 1} OFFSET $${gamesParams.length + 2}
+    `;
+
+    gamesParams.push(limit, offset);
+
+    const { rows: games } = await db.query(gamesQuery, gamesParams);
 
     for (const game of games) {
       const { rows: translations } = await db.query('SELECT game_translations.*, languages.code FROM game_translations JOIN languages ON game_translations.language_id = languages.id WHERE game_id = $1', [game.id]);
