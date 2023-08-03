@@ -4,6 +4,7 @@ const router = express.Router();
 const db = require('../db');
 const multer = require('multer');
 const path = require('path');
+const slugify = require('slugify');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../public/games'));
@@ -35,13 +36,15 @@ router.get('/', async (req, res, next) => {
     const search = req.query.search;  // fetch search query parameter
 
     let gamesQuery = `
-      SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, games.click_count, categories.name as category, games.category_id
+      SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, games.new, games.click_count, categories.name as category, games.category_id, game_slugs.slug
       FROM games
       JOIN categories ON games.category_id = categories.id
-      WHERE games.publish = TRUE
+      JOIN game_slugs ON games.id = game_slugs.game_id
+      JOIN languages ON game_slugs.language_id = languages.id
+      WHERE games.publish = TRUE AND languages.code = $1
     `;
-
-    let gamesParams = [];
+  
+    let gamesParams = [req.query.language];  // Use req.query.language instead of i18n.language
 
     if (search) {
       gamesQuery += ` AND (LOWER(games.name) LIKE LOWER($1) OR LOWER(games.alias) LIKE LOWER($1))`;
@@ -135,17 +138,19 @@ router.get('/all', auth, admin, async (req, res, next) => {
   }
 });
 
-router.get('/:id', softAuth, async (req, res, next) => {
+router.get('/:language_code/:slug', softAuth, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { slug, language_code } = req.params;
 
     const { rows: games } = await db.query(`
       SELECT games.id, games.name, games.player_count, games.image, games.description, games.alias, categories.name as category, games.category_id, users.username as creator
       FROM games
       JOIN categories ON games.category_id = categories.id
       JOIN users ON games.creator_id = users.id
-      WHERE games.id = $1
-    `, [id]);
+      JOIN game_slugs ON games.id = game_slugs.game_id
+      JOIN languages ON game_slugs.language_id = languages.id
+      WHERE game_slugs.slug = $1 AND languages.code = $2
+    `, [slug, language_code]);
 
     const game = games[0];
     const webhookUrl = process.env.DISCORD_LOG_URL;
@@ -182,6 +187,20 @@ router.get('/:id', softAuth, async (req, res, next) => {
        WHERE necessities.game_id = $1`,
       [game.id]
     );
+
+    const { rows: allSlugs } = await db.query(`
+      SELECT game_slugs.slug, languages.code 
+      FROM game_slugs 
+      JOIN languages ON game_slugs.language_id = languages.id 
+      WHERE game_slugs.game_id = $1
+    `, [game.id]);
+
+    const translatedSlugs = {};
+    allSlugs.forEach(s => {
+        translatedSlugs[s.code] = s.slug;
+    });
+
+    game.translatedSlugs = translatedSlugs;
 
     const necessitiesWithTranslations = {};
 
@@ -306,11 +325,19 @@ router.post('/', auth, admin, upload.single('image'), async (req, res, next) => 
     for (const translation of translations) {
       const alias = aliases.find(a => a.language_id === translation.language_id)?.alias || null;
       const description = descriptions.find(d => d.language_id === translation.language_id)?.description || '';
+      const gameSlug = slugify(translation.name, { lower: true });
 
       await db.query(
         `INSERT INTO game_translations (game_id, language_id, name, alias, description)
          VALUES ($1, $2, $3, $4, $5)`,
         [gameId, translation.language_id, translation.name, alias, description]
+      );
+
+      // Insert slug into game_slugs table
+      await db.query(
+        `INSERT INTO game_slugs (game_id, language_id, slug)
+        VALUES ($1, $2, $3)`,
+        [gameId, translation.language_id, gameSlug]
       );
     }
 
@@ -385,6 +412,8 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
     }
 
     for (const translation of translations) {
+      const gameSlug = slugify(translation.name, { lower: true });
+
       if (!translation.name) {
         continue;
       }
@@ -395,6 +424,15 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res, next) =
          ON CONFLICT (game_id, language_id) DO UPDATE
          SET name = $3, alias = $4`,
         [gameId, translation.language_id, translation.name, translation.alias]
+      );
+
+      // Update slug in game_slugs table
+      await db.query(
+        `INSERT INTO game_slugs (game_id, language_id, slug)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (game_id, language_id) DO UPDATE
+        SET slug = $3`,
+        [gameId, translation.language_id, gameSlug]
       );
     }
 
@@ -588,6 +626,9 @@ router.delete('/:id', auth, admin, async (req, res, next) => {
 
     // Delete game translations
     await db.query('DELETE FROM game_translations WHERE game_id = $1', [gameId]);
+
+    // Delete slugs associated with the game
+    await db.query('DELETE FROM game_slugs WHERE game_id = $1', [gameId]);
 
     // Delete game
     await db.query('DELETE FROM games WHERE id = $1', [gameId]);
