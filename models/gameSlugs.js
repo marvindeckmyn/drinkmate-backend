@@ -6,8 +6,9 @@ const createTable = async () => {
       CREATE TABLE IF NOT EXISTS game_slugs (
         game_id INTEGER REFERENCES games(id),
         language_id INTEGER REFERENCES languages(id),
-        slug VARCHAR(255) UNIQUE,
-        PRIMARY KEY (game_id, language_id)
+        slug VARCHAR(255),
+        PRIMARY KEY (game_id, language_id),
+        UNIQUE(slug, language_id)
       )
     `);
     console.log('GameSlugs table created');
