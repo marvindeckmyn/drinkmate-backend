@@ -7,6 +7,7 @@ const gameTranslation = require('./gameTranslation');
 const necessityTranslation = require('./necessityTranslation');
 const categoryTranslation = require('./categoryTranslation');
 const user = require('./user');
+const gameSlugs = require('./gameSlugs');
 
 const syncAll = async () => {
   await user.createTable();
@@ -19,6 +20,7 @@ const syncAll = async () => {
   await gameTranslation.createTable();
   await necessityTranslation.createTable();
   await categoryTranslation.createTable();
+  await gameSlugs.createTable();
 };
 
 syncAll();
