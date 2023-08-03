@@ -47,9 +47,10 @@ router.get('/', async (req, res, next) => {
     let gamesParams = [req.query.language];  // Use req.query.language instead of i18n.language
 
     if (search) {
-      gamesQuery += ` AND (LOWER(games.name) LIKE LOWER($1) OR LOWER(games.alias) LIKE LOWER($1))`;
+      const placeholder = `$${gamesParams.length + 1}`;
+      gamesQuery += ` AND (LOWER(games.name) LIKE LOWER(${placeholder}) OR LOWER(games.alias) LIKE LOWER(${placeholder}))`;
       gamesParams.push(`%${search}%`);
-    }
+  }
 
     gamesQuery += `
       ORDER BY games.click_count DESC
